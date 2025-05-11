@@ -44,7 +44,7 @@ const Faq = () => {
     },
     {
       question: "Can I use my existing email address with your service?",
-      answer: "Yes, you can migrate from your existing email provider to our service. We offer migration tools and support to help transfer your emails, contacts, and calendar data. Our team can assist with the entire process to ensure a smooth transition without data loss."
+      answer: "Yes, you can migrate from your existing email provider to our service. We offer migration tools and support to help transfer your emails, contacts, and calendar data. Our community support can guide you through the entire process to ensure a smooth transition without data loss."
     },
     {
       question: "What email clients can I use with your service?",
@@ -52,11 +52,11 @@ const Faq = () => {
     },
     {
       question: "How do I add or remove email accounts?",
-      answer: "Adding or removing email accounts is simple through our admin dashboard. Administrators can create new accounts, set permissions, and manage storage allocations in just a few clicks. You only pay for active accounts, and you can add or remove users as your business needs change."
+      answer: "Adding or removing email accounts is simple through our admin dashboard. Administrators can create new accounts, set permissions, and manage storage allocations in just a few clicks. Our service is completely free, so you can add as many accounts as you need for your organization."
     },
     {
       question: "What security features are included?",
-      answer: "Our service includes comprehensive security features such as spam filtering, virus protection, phishing defense, and TLS encryption for all emails. Business and Enterprise plans include additional features like two-factor authentication, advanced threat protection, and data loss prevention tools."
+      answer: "Our free service includes comprehensive security features such as spam filtering, virus protection, phishing defense, and TLS encryption for all emails. We also provide two-factor authentication, advanced threat protection, and data loss prevention tools at no cost to ensure your email communications remain secure."
     }
   ];
 

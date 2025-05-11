@@ -14,9 +14,9 @@ const Features = () => {
     <section id="features" className="py-16 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-secondary-900 mb-4">Everything You Need for Professional Email</h2>
+          <h2 className="text-3xl font-bold text-secondary-900 mb-4">Everything You Need for Professional Email - 100% Free</h2>
           <p className="text-xl text-secondary-600 max-w-3xl mx-auto">
-            MailDomainPro provides all the tools and features to establish a professional email presence.
+            MailDomainPro provides all the tools and features to establish a professional email presence without any cost.
           </p>
         </div>
         

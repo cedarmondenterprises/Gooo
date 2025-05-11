@@ -11,17 +11,17 @@ const Hero = () => {
               Professional Email Addresses for Your Business
             </h1>
             <p className="text-xl text-secondary-600 mb-8">
-              Create custom email addresses with your domain name. Boost your credibility and brand recognition with every message you send.
+              Create custom email addresses with your domain name for free. Boost your credibility and brand recognition with every message you send.
             </p>
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <a href="#domain-setup">
                 <Button size="lg" className="w-full sm:w-auto px-8">
-                  Create Your Email
+                  Create Your Free Email
                 </Button>
               </a>
-              <a href="#pricing">
+              <a href="#features">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto px-8">
-                  View Pricing
+                  View Features
                 </Button>
               </a>
             </div>
