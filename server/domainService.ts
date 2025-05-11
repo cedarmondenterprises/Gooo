@@ -1,6 +1,7 @@
 // Domain service for managing domain verification and DNS records
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
+import fetch from 'node-fetch';
 
 interface DnsRecord {
   type: string;
@@ -29,22 +30,68 @@ interface MxVerificationResult {
   message: string;
 }
 
+// Google DNS API response interfaces
+interface GoogleDnsAnswer {
+  name: string;
+  type: number;
+  TTL: number;
+  data: string;
+}
+
+interface GoogleDnsResponse {
+  Status: number;
+  TC: boolean;
+  RD: boolean;
+  RA: boolean;
+  AD: boolean;
+  CD: boolean;
+  Question: Array<{
+    name: string;
+    type: number;
+  }>;
+  Answer?: GoogleDnsAnswer[];
+}
+
+// DNS record type mappings
+const DNS_TYPES: { [key: string]: number } = {
+  A: 1,
+  NS: 2,
+  CNAME: 5,
+  SOA: 6,
+  PTR: 12,
+  MX: 15,
+  TXT: 16,
+  AAAA: 28,
+  SRV: 33,
+  CAA: 257
+};
+
 // In-memory storage for domain verification info
 const domainVerifications = new Map<string, DomainVerificationResult>();
 
 class DomainService {
+  private googleDnsApiEndpoint = 'https://dns.google/resolve';
+  
   /**
    * Check domain availability and generate verification records
    */
   async checkDomain(domain: string): Promise<DomainVerificationResult> {
     try {
+      // Check if domain exists by querying DNS
+      const domainExists = await this.checkDomainExists(domain);
+      
+      if (!domainExists) {
+        throw new Error(`The domain ${domain} doesn't appear to exist. Please check the spelling and try again.`);
+      }
+      
       // Generate a unique domain ID
       const domainId = uuidv4();
       
       // Generate a verification code
-      const verificationCode = crypto.randomBytes(12).toString('hex');
+      const verificationCode = crypto.randomBytes(6).toString('hex');
       
       // Generate DNS records needed for verification
+      // These are the records the user will need to add to prove ownership
       const dnsRecords: DnsRecord[] = [
         {
           type: 'TXT',
@@ -89,19 +136,57 @@ class DomainService {
       
       domainVerifications.set(domain, verificationInfo);
       
-      // In a real implementation, we might check for domain availability
-      // through a domain registrar API or DNS lookup
-      
       return verificationInfo;
     } catch (error) {
       console.error('Error checking domain:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
       throw new Error('Failed to check domain. Please try again later.');
     }
   }
   
   /**
+   * Check if a domain exists by querying for its NS records
+   */
+  private async checkDomainExists(domain: string): Promise<boolean> {
+    try {
+      // Query for NS records - if a domain exists, it should have NS records
+      const response = await this.queryDns(domain, 'NS');
+      
+      // If we got a valid response with answers, the domain exists
+      return response.Status === 0 && Array.isArray(response.Answer) && response.Answer.length > 0;
+    } catch (error) {
+      console.error('Error checking if domain exists:', error);
+      // Assume the domain doesn't exist if we can't verify
+      return false;
+    }
+  }
+  
+  /**
+   * Query Google's public DNS API
+   */
+  private async queryDns(name: string, type: string): Promise<GoogleDnsResponse> {
+    const typeCode = DNS_TYPES[type] || 1; // Default to A record
+    const url = `${this.googleDnsApiEndpoint}?name=${encodeURIComponent(name)}&type=${typeCode}`;
+    
+    try {
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`DNS query failed with status: ${response.status}`);
+      }
+      
+      return await response.json() as GoogleDnsResponse;
+    } catch (error) {
+      console.error('Error querying DNS:', error);
+      throw new Error('Failed to query DNS. Please try again later.');
+    }
+  }
+  
+  /**
    * Verify DNS records for a domain
-   * In a real implementation, this would make DNS queries to verify records
+   * This makes actual DNS queries to verify the records
    */
   async verifyDnsRecords(domain: string): Promise<DnsVerificationResult> {
     try {
@@ -112,19 +197,56 @@ class DomainService {
         throw new Error('Domain verification info not found');
       }
       
-      // In a real implementation, we would check DNS servers
-      // For this demo, we'll simulate verification with random success/failure
-      
-      const verificationResults = verificationInfo.dnsRecords.map(record => {
-        // For demo purposes, let's simulate 80% success rate
-        const verified = Math.random() < 0.8;
-        
-        return {
-          type: record.type,
-          host: record.host,
-          verified
-        };
-      });
+      // Verify each DNS record
+      const verificationResults = await Promise.all(
+        verificationInfo.dnsRecords.map(async (record) => {
+          let verified = false;
+          
+          try {
+            // Construct the full hostname for the query
+            const hostname = record.host === domain ? 
+              domain : 
+              record.host;
+            
+            // Query for the specific record type
+            const dnsResponse = await this.queryDns(hostname, record.type);
+            
+            if (dnsResponse.Status === 0 && dnsResponse.Answer) {
+              // Look for the specific value in the answers
+              if (record.type === 'MX') {
+                // MX records have priority and hostname separated by space
+                verified = dnsResponse.Answer.some(answer => {
+                  const parts = answer.data.split(' ');
+                  // Check if priority and hostname match
+                  return (parts.length > 1 && 
+                          parseInt(parts[0], 10) === (record.priority || 0) && 
+                          parts[1].toLowerCase() === record.value.toLowerCase());
+                });
+              } else if (record.type === 'TXT') {
+                // TXT records may have quotes that need to be removed
+                verified = dnsResponse.Answer.some(answer => {
+                  // Remove quotes if present
+                  const cleanData = answer.data.replace(/^"(.*)"$/, '$1');
+                  return cleanData.includes(record.value);
+                });
+              } else {
+                // For other record types, directly compare values
+                verified = dnsResponse.Answer.some(answer => 
+                  answer.data.toLowerCase() === record.value.toLowerCase());
+              }
+            }
+          } catch (error) {
+            console.error(`Error verifying record ${record.type} for ${record.host}:`, error);
+            // Leave verified as false if there was an error
+          }
+          
+          return {
+            type: record.type,
+            host: record.host,
+            verified
+          };
+        })
+      );
       
       const allVerified = verificationResults.every(r => r.verified);
       
@@ -134,6 +256,9 @@ class DomainService {
       };
     } catch (error) {
       console.error('Error verifying DNS records:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
       throw new Error('Failed to verify DNS records. Please try again later.');
     }
   }
@@ -169,15 +294,32 @@ class DomainService {
         };
       }
       
-      // In a real implementation, we would verify MX records
-      // For this demo, we'll simulate a successful verification
-      
-      return {
-        verified: true,
-        message: 'MX records verified successfully'
-      };
+      // Verify MX records actually exist for the domain
+      try {
+        const dnsResponse = await this.queryDns(foundDomain, 'MX');
+        
+        if (dnsResponse.Status === 0 && dnsResponse.Answer && dnsResponse.Answer.length > 0) {
+          return {
+            verified: true,
+            message: 'MX records verified successfully'
+          };
+        } else {
+          return {
+            verified: false,
+            message: 'No MX records found for the domain'
+          };
+        }
+      } catch (error) {
+        return {
+          verified: false,
+          message: 'Error verifying MX records'
+        };
+      }
     } catch (error) {
       console.error('Error verifying MX records:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
       throw new Error('Failed to verify MX records. Please try again later.');
     }
   }
