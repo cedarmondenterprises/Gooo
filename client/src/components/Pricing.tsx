@@ -51,7 +51,7 @@ const Pricing = () => {
             </ul>
             
             <div className="mt-auto">
-              <a href="/email-setup">
+              <a href="/domain-connect">
                 <Button className="w-full">
                   Get Started Now
                 </Button>

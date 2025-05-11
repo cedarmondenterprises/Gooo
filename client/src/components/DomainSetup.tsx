@@ -122,7 +122,7 @@ const DomainSetup = () => {
         </div>
         
         <div className="mt-12 text-center">
-          <a href="/email-setup">
+          <a href="/domain-connect">
             <Button size="lg" className="px-8">
               Get Started Free
             </Button>
