@@ -1,4 +1,4 @@
-import { users, type User, type InsertUser, type Contact, type InsertContact } from "@shared/schema";
+import { users, type User, type InsertUser, type Contact, type InsertContact, type EmailAccount, type InsertEmailAccount } from "@shared/schema";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -8,19 +8,26 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   createContact(contact: InsertContact): Promise<Contact>;
+  createEmailAccount(emailAccount: InsertEmailAccount): Promise<EmailAccount>;
+  getEmailAccountByAddress(address: string): Promise<EmailAccount | undefined>;
+  getEmailAccountsByDomain(domain: string): Promise<EmailAccount[]>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private contacts: Map<number, Contact>;
+  private emailAccounts: Map<number, EmailAccount>;
   currentUserId: number;
   currentContactId: number;
+  currentEmailAccountId: number;
 
   constructor() {
     this.users = new Map();
     this.contacts = new Map();
+    this.emailAccounts = new Map();
     this.currentUserId = 1;
     this.currentContactId = 1;
+    this.currentEmailAccountId = 1;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -49,6 +56,29 @@ export class MemStorage implements IStorage {
     };
     this.contacts.set(id, contact);
     return contact;
+  }
+
+  async createEmailAccount(insertEmailAccount: InsertEmailAccount): Promise<EmailAccount> {
+    const id = this.currentEmailAccountId++;
+    const emailAccount: EmailAccount = {
+      ...insertEmailAccount,
+      id,
+      createdAt: Math.floor(Date.now() / 1000)
+    };
+    this.emailAccounts.set(id, emailAccount);
+    return emailAccount;
+  }
+
+  async getEmailAccountByAddress(address: string): Promise<EmailAccount | undefined> {
+    return Array.from(this.emailAccounts.values()).find(
+      (account) => account.address === address
+    );
+  }
+
+  async getEmailAccountsByDomain(domain: string): Promise<EmailAccount[]> {
+    return Array.from(this.emailAccounts.values()).filter(
+      (account) => account.domain === domain
+    );
   }
 }
 
