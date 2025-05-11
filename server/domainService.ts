@@ -147,7 +147,9 @@ class DomainService {
       let foundDomain: string | undefined;
       let foundVerification: DomainVerificationResult | undefined;
       
-      for (const [domain, verification] of domainVerifications.entries()) {
+      // Convert entries to array to avoid downlevelIteration issues
+      const entries = Array.from(domainVerifications.entries());
+      for (const [domain, verification] of entries) {
         if (verification.domainId === domainId) {
           foundDomain = domain;
           foundVerification = verification;

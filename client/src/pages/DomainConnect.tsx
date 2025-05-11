@@ -124,10 +124,30 @@ const DomainConnect = () => {
     },
   });
   
+  // Define response types for API calls
+  interface DomainCheckResponse {
+    message: string;
+    domainId: string;
+    verificationCode: string;
+    dnsRecords: DnsRecord[];
+  }
+  
+  interface DnsVerificationRecord {
+    type: string;
+    host: string;
+    verified: boolean;
+  }
+  
+  interface DnsVerificationResponse {
+    message: string;
+    records: DnsVerificationRecord[];
+    allVerified: boolean;
+  }
+
   // Domain check mutation
   const domainMutation = useMutation({
     mutationFn: (data: DomainFormValues) => {
-      return apiRequest("POST", "/api/domain/check", data);
+      return apiRequest<DomainCheckResponse>("POST", "/api/domain/check", data);
     },
     onSuccess: (data) => {
       toast({
@@ -160,21 +180,21 @@ const DomainConnect = () => {
   // DNS verification mutation
   const verifyDnsMutation = useMutation({
     mutationFn: (data: { domain: string }) => {
-      return apiRequest("POST", "/api/domain/verify-dns", data);
+      return apiRequest<DnsVerificationResponse>("POST", "/api/domain/verify-dns", data);
     },
     onSuccess: (data) => {
       // Update records status
       const newStatuses = {...recordStatuses};
       
-      data.records.forEach((record: any) => {
+      data.records.forEach((record) => {
         newStatuses[`${record.type}-${record.host}`] = record.verified ? "verified" : "failed";
       });
       
       setRecordStatuses(newStatuses);
       
       // Determine overall status
-      const allVerified = data.records.every((r: any) => r.verified);
-      const anyVerified = data.records.some((r: any) => r.verified);
+      const allVerified = data.records.every((r) => r.verified);
+      const anyVerified = data.records.some((r) => r.verified);
       
       if (allVerified) {
         setVerificationStatus("success");
@@ -210,10 +230,16 @@ const DomainConnect = () => {
     }
   });
 
+  // MX verification response type
+  interface MxVerificationResponse {
+    message: string;
+    verified: boolean;
+  }
+  
   // MX verification mutation
   const verifyMxMutation = useMutation({
     mutationFn: (data: VerifyMxFormValues) => {
-      return apiRequest("POST", "/api/domain/verify-mx", data);
+      return apiRequest<MxVerificationResponse>("POST", "/api/domain/verify-mx", data);
     },
     onSuccess: (data) => {
       toast({
