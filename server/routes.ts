@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { contactSchema } from "@shared/schema";
 import { emailService } from "./emailService";
+import { domainService } from "./domainService";
 
 // Domain validation schema
 const domainValidationSchema = z.object({
@@ -58,7 +59,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Domain validation endpoint
+  // Domain check endpoint (first step of domain setup)
+  app.post("/api/domain/check", async (req, res) => {
+    try {
+      // Extract domain from request body
+      const { domain } = req.body;
+      
+      if (!domain || typeof domain !== 'string') {
+        return res.status(400).json({ 
+          message: "Invalid domain", 
+          error: "Domain is required and must be a string" 
+        });
+      }
+      
+      // Check domain availability and generate verification records
+      const domainInfo = await domainService.checkDomain(domain);
+      
+      // Return domain verification info
+      res.status(200).json({ 
+        message: "Domain check successful", 
+        ...domainInfo
+      });
+    } catch (error) {
+      console.error("Error checking domain:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Domain check failed", 
+        error: errorMessage
+      });
+    }
+  });
+  
+  // DNS records verification endpoint
+  app.post("/api/domain/verify-dns", async (req, res) => {
+    try {
+      // Extract domain from request body
+      const { domain } = req.body;
+      
+      if (!domain || typeof domain !== 'string') {
+        return res.status(400).json({ 
+          message: "Invalid domain", 
+          error: "Domain is required and must be a string" 
+        });
+      }
+      
+      // Verify DNS records
+      const verificationResult = await domainService.verifyDnsRecords(domain);
+      
+      // Return verification result
+      res.status(200).json({ 
+        message: verificationResult.allVerified 
+          ? "All DNS records verified" 
+          : "Some DNS records failed verification",
+        ...verificationResult
+      });
+    } catch (error) {
+      console.error("Error verifying DNS records:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "DNS verification failed", 
+        error: errorMessage
+      });
+    }
+  });
+  
+  // MX records verification endpoint
+  app.post("/api/domain/verify-mx", async (req, res) => {
+    try {
+      // Extract domain ID and verification code from request body
+      const { domainId, verificationCode } = req.body;
+      
+      if (!domainId || !verificationCode) {
+        return res.status(400).json({ 
+          message: "Invalid verification data", 
+          error: "Domain ID and verification code are required" 
+        });
+      }
+      
+      // Verify MX records
+      const verificationResult = await domainService.verifyMxRecords(domainId, verificationCode);
+      
+      if (!verificationResult.verified) {
+        return res.status(400).json({ 
+          message: "MX verification failed", 
+          error: verificationResult.message 
+        });
+      }
+      
+      // Return success response
+      res.status(200).json({ 
+        message: "MX records verified successfully",
+        verified: true
+      });
+    } catch (error) {
+      console.error("Error verifying MX records:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "MX verification failed", 
+        error: errorMessage
+      });
+    }
+  });
+
+  // Domain validation endpoint (legacy - redirect to new API)
   app.post("/api/validate-domain", async (req, res) => {
     try {
       // Validate request body

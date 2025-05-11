@@ -14,7 +14,7 @@ const Hero = () => {
               Create custom email addresses with your domain name for free. Boost your credibility and brand recognition with every message you send.
             </p>
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-              <a href="/email-setup">
+              <a href="/domain-connect">
                 <Button size="lg" className="w-full sm:w-auto px-8">
                   Create Your Free Email
                 </Button>
