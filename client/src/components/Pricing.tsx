@@ -51,9 +51,11 @@ const Pricing = () => {
             </ul>
             
             <div className="mt-auto">
-              <Button className="w-full">
-                Get Started Now
-              </Button>
+              <a href="/email-setup">
+                <Button className="w-full">
+                  Get Started Now
+                </Button>
+              </a>
             </div>
           </div>
         </div>

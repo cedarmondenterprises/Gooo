@@ -53,6 +53,7 @@ export const emailAccountSchema = createInsertSchema(emailAccounts).pick({
   lastName: true,
   provider: true,
   domain: true,
+  createdAt: true,
 });
 
 export type InsertEmailAccount = z.infer<typeof emailAccountSchema>;
