@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import fetch from 'node-fetch';
+import { sendgridService } from './sendgridService';
 
 interface DnsRecord {
   type: string;
@@ -90,42 +91,24 @@ class DomainService {
       // Generate a verification code
       const verificationCode = crypto.randomBytes(6).toString('hex');
       
-      // Generate DNS records needed for verification
-      // These are the records the user will need to add to prove ownership
-      const dnsRecords: DnsRecord[] = [
-        {
-          type: 'TXT',
-          host: `_maildomainpro.${domain}`,
-          value: `verification=${verificationCode}`
-        },
-        {
-          type: 'MX',
-          host: domain,
-          value: 'mx1.maildomainpro.com',
-          priority: 10
-        },
-        {
-          type: 'MX',
-          host: domain,
-          value: 'mx2.maildomainpro.com',
-          priority: 20
-        },
-        {
-          type: 'TXT',
-          host: domain,
-          value: 'v=spf1 include:_spf.maildomainpro.com ~all'
-        },
-        {
-          type: 'CNAME',
-          host: `mail.${domain}`,
-          value: 'webmail.maildomainpro.com'
-        },
-        {
-          type: 'TXT',
-          host: `_dmarc.${domain}`,
-          value: 'v=DMARC1; p=none; pct=100; rua=mailto:dmarc@maildomainpro.com'
-        }
-      ];
+      // Get real SendGrid DNS verification records
+      console.log(`Authenticating ${domain} with SendGrid...`);
+      const sendgridDomainResult = await sendgridService.authenticateDomain(domain);
+      
+      // Convert SendGrid records to our format
+      const dnsRecords: DnsRecord[] = sendgridDomainResult.dnsRecords.map(record => ({
+        type: record.type,
+        host: record.host,
+        value: record.data,
+        priority: record.type === 'MX' ? 10 : undefined // Add priority for MX records
+      }));
+      
+      // Add our own verification record
+      dnsRecords.push({
+        type: 'TXT',
+        host: `_maildomainpro.${domain}`,
+        value: `verification=${verificationCode}`
+      });
       
       // Store verification info
       const verificationInfo: DomainVerificationResult = {
@@ -197,11 +180,39 @@ class DomainService {
         throw new Error('Domain verification info not found');
       }
       
+      // First check with SendGrid for verification status
+      let sendgridVerification: any = null;
+      try {
+        console.log(`Checking SendGrid verification status for ${domain}...`);
+        sendgridVerification = await sendgridService.getDomainVerificationStatus(domain);
+        console.log(`SendGrid verification result:`, sendgridVerification);
+      } catch (error) {
+        console.error('Error checking with SendGrid:', error);
+        // Continue with our own verification if SendGrid fails
+      }
+      
       // Verify each DNS record
       const verificationResults = await Promise.all(
         verificationInfo.dnsRecords.map(async (record) => {
           let verified = false;
           
+          // First check if the record is verified by SendGrid
+          if (sendgridVerification) {
+            const sendgridRecord = sendgridVerification.dnsRecords.find(
+              (r: any) => r.type === record.type && r.host === record.host
+            );
+            
+            if (sendgridRecord && sendgridRecord.valid) {
+              verified = true;
+              return {
+                type: record.type,
+                host: record.host,
+                verified: true
+              };
+            }
+          }
+          
+          // If not verified by SendGrid, verify using DNS lookup
           try {
             // Construct the full hostname for the query
             const hostname = record.host === domain ? 
@@ -294,7 +305,22 @@ class DomainService {
         };
       }
       
-      // Verify MX records actually exist for the domain
+      // Check with SendGrid first for domain verification
+      try {
+        const sendgridVerification = await sendgridService.getDomainVerificationStatus(foundDomain);
+        
+        if (sendgridVerification.verified) {
+          return {
+            verified: true,
+            message: 'Domain verified successfully with SendGrid'
+          };
+        }
+      } catch (error) {
+        console.error('Error checking with SendGrid:', error);
+        // Continue with DNS verification if SendGrid check fails
+      }
+      
+      // If SendGrid verification failed or wasn't available, verify MX records via DNS
       try {
         const dnsResponse = await this.queryDns(foundDomain, 'MX');
         
