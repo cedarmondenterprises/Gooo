@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/toaster'; // or replace with `sonner`
+//import { Toaster } from '@/components/ui/toaster'; // or replace with `sonner`
 
 const queryClient = new QueryClient();
 
@@ -8,7 +8,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       {/* your app components */}
 
-      <Toaster />
+      
     </QueryClientProvider>
   );
 }
