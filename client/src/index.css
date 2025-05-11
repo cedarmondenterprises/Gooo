@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 217 91.2% 59.8%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 220 14.3% 95.9%;
+  --secondary-foreground: 220 8.9% 46.1%;
+  --accent: 220 14.3% 95.9%;
+  --accent-foreground: 220 8.9% 46.1%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 217 91.2% 59.8%;
+  --radius: 0.5rem;
+  
+  /* Custom colors for our service */
+  --secondary-50: 210 40% 98%;
+  --secondary-100: 210 40% 96.1%;
+  --secondary-200: 214 32% 91%;
+  --secondary-300: 213 27% 84%;
+  --secondary-400: 215 20% 65%;
+  --secondary-500: 215 16% 47%;
+  --secondary-600: 215 19% 35%;
+  --secondary-700: 215 25% 27%;
+  --secondary-800: 217 33% 17%;
+  --secondary-900: 222 47% 11%;
+  --secondary-950: 229 84% 5%;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 217 91.2% 59.8%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 217 91.2% 59.8%;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-secondary-50 text-secondary-900;
+  }
+}
+
+@layer components {
+  .testimonial-card {
+    @apply rounded-lg border border-secondary-200 bg-white shadow-sm p-6 h-full flex flex-col;
+  }
+
+  .plan-card {
+    @apply rounded-lg border border-secondary-200 bg-white shadow-sm p-6 relative h-full flex flex-col;
+  }
+
+  .plan-card-popular {
+    @apply border-primary border-2;
+  }
+}
