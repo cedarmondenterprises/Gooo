@@ -1,6 +1,6 @@
 // Email service for validating domains and creating email accounts
 import crypto from 'crypto';
-import fetch from 'node-fetch';
+import { sendgridService } from './sendgridService';
 
 interface DomainValidationResult {
   isAvailable: boolean;
@@ -31,20 +31,8 @@ interface EmailAccountCreationResult {
   }[];
 }
 
-// Mail provider API response types
-interface MailProviderDomainStatus {
-  domainName: string;
-  status: 'available' | 'pending' | 'verified' | 'invalid';
-  mx_records_valid: boolean;
-  spf_records_valid: boolean;
-  dkim_records_valid: boolean;
-}
-
 class EmailService {
-  // Email service provider API base URL
-  private providerApiBase = 'https://api.maildomainpro.com';
-  
-  // Email provider configurations
+  // Email provider configurations for different tiers
   private providerConfigs: {
     [key: string]: {
       displayName: string;
@@ -53,133 +41,110 @@ class EmailService {
       imapHost: string;
       imapPort: number;
       webmailUrl: string;
-      apiEndpoint: string;
     };
   } = {
     standard: {
       displayName: 'Standard Email',
-      smtpHost: 'smtp.maildomainpro.com',
+      smtpHost: 'smtp.sendgrid.net',
       smtpPort: 587,
-      imapHost: 'imap.maildomainpro.com',
-      imapPort: 993,
-      webmailUrl: 'https://mail.maildomainpro.com',
-      apiEndpoint: '/api/v1/standard'
+      imapHost: 'N/A - Use email forwarding',
+      imapPort: 0,
+      webmailUrl: 'https://app.sendgrid.com'
     },
     business: {
       displayName: 'Business Email',
-      smtpHost: 'smtp.business.maildomainpro.com',
+      smtpHost: 'smtp.sendgrid.net',
       smtpPort: 587,
-      imapHost: 'imap.business.maildomainpro.com',
-      imapPort: 993,
-      webmailUrl: 'https://business.maildomainpro.com',
-      apiEndpoint: '/api/v1/business'
+      imapHost: 'N/A - Use email forwarding',
+      imapPort: 0,
+      webmailUrl: 'https://app.sendgrid.com'
     },
     enterprise: {
       displayName: 'Enterprise Email',
-      smtpHost: 'smtp.enterprise.maildomainpro.com',
+      smtpHost: 'smtp.sendgrid.net',
       smtpPort: 587,
-      imapHost: 'imap.enterprise.maildomainpro.com',
-      imapPort: 993,
-      webmailUrl: 'https://enterprise.maildomainpro.com',
-      apiEndpoint: '/api/v1/enterprise'
+      imapHost: 'N/A - Use email forwarding',
+      imapPort: 0, 
+      webmailUrl: 'https://app.sendgrid.com'
     }
   };
 
   /**
-   * Check if an email provider's API is available
-   * For real implementation, this would use the actual API
-   */
-  private async checkApiAvailability(): Promise<boolean> {
-    // In a real implementation, we would ping the API to check availability
-    // For this exercise, we'll return true to simulate an available API
-    
-    // Simulate a network request
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return true;
-  }
-
-  /**
-   * Make API request to check domain status (simulated)
-   */
-  private async checkDomainWithProvider(domain: string): Promise<MailProviderDomainStatus> {
-    // Simulate an API check for the domain
-    // In a real implementation, this would be an actual API call
-    
-    // Check if API is available
-    const apiAvailable = await this.checkApiAvailability();
-    if (!apiAvailable) {
-      throw new Error('Email provider API is currently unavailable. Please try again later.');
-    }
-    
-    // Simulate API response latency
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // Since we can't actually create an email API integration without credentials,
-    // we'll return a successful status if the domain looks valid
-    const validDomainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
-    
-    return {
-      domainName: domain,
-      status: validDomainPattern.test(domain) ? 'available' : 'invalid',
-      mx_records_valid: true,
-      spf_records_valid: true,
-      dkim_records_valid: true
-    };
-  }
-
-  /**
    * Validate a domain for email setup
-   * This checks with the email provider if the domain can be used
+   * This checks if the domain is properly verified with SendGrid
    */
   async validateDomain(domainName: string): Promise<DomainValidationResult> {
     try {
-      // Check with the email provider API
-      const domainStatus = await this.checkDomainWithProvider(domainName);
+      console.log(`Validating domain: ${domainName} with SendGrid`);
+      
+      // Check API connection first
+      const apiConnected = await sendgridService.checkApiConnection();
+      if (!apiConnected) {
+        throw new Error('Unable to connect to the email service. Please check your API key.');
+      }
+      
+      // Get domain verification status from SendGrid
+      const domainStatus = await sendgridService.getDomainVerificationStatus(domainName);
       
       return {
-        isAvailable: domainStatus.status === 'available' || domainStatus.status === 'verified',
-        mxRecordsValid: domainStatus.mx_records_valid,
-        dnsVerified: domainStatus.spf_records_valid && domainStatus.dkim_records_valid
+        isAvailable: true, // Domain availability is checked earlier in the flow
+        mxRecordsValid: domainStatus.verified, // This checks if SendGrid can receive emails
+        dnsVerified: domainStatus.verified // Overall verification status
       };
     } catch (error) {
-      console.error('Error validating domain with provider:', error);
-      throw new Error('Failed to validate domain. The email provider service may be temporarily unavailable.');
+      console.error('Error validating domain with SendGrid:', error);
+      
+      // If domain isn't found, it means it's not set up yet
+      if (error instanceof Error && error.message.includes('not found')) {
+        return {
+          isAvailable: true,
+          mxRecordsValid: false,
+          dnsVerified: false
+        };
+      }
+      
+      // For other errors, throw
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to validate domain. The email service may be temporarily unavailable.');
     }
   }
 
   /**
-   * Create an email account for a domain
-   * In a real implementation, this would make API calls to the email provider
+   * Create an email account for a domain using SendGrid
    */
   async createEmailAccount(account: EmailAccountInfo): Promise<EmailAccountCreationResult> {
     try {
+      console.log(`Creating email account: ${account.emailAddress} with SendGrid`);
+      
+      // Check SendGrid connection
+      const apiConnected = await sendgridService.checkApiConnection();
+      if (!apiConnected) {
+        throw new Error('Unable to connect to SendGrid. Please check your API key.');
+      }
+      
+      // Create the email account on SendGrid
+      const emailAccountResult = await sendgridService.createEmailAccount({
+        email: account.emailAddress,
+        firstName: account.firstName,
+        lastName: account.lastName,
+        domain: account.domain
+      });
+      
+      if (!emailAccountResult.success) {
+        throw new Error(emailAccountResult.message || 'Failed to create email account with SendGrid.');
+      }
+      
       // Get provider configuration
       const provider = this.providerConfigs[account.provider] || this.providerConfigs.standard;
       
-      // Check if API is available
-      const apiAvailable = await this.checkApiAvailability();
-      if (!apiAvailable) {
-        throw new Error('Email provider API is currently unavailable. Please try again later.');
-      }
-      
-      // Validate the domain once more
-      const domainValidation = await this.validateDomain(account.domain);
-      if (!domainValidation.isAvailable) {
-        throw new Error('Domain is not available for email setup. Please verify your domain settings.');
-      }
-      
-      // In a real implementation, we would make an API call to create the account
-      // For this exercise, we'll simulate a successful creation
-      
-      // Simulate API latency
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Return success result with SendGrid details
       return {
         success: true,
         mailboxSetup: true,
-        webmailUrl: `${provider.webmailUrl}/${account.domain}`,
-        smtpHost: provider.smtpHost,
+        webmailUrl: emailAccountResult.webmail,
+        smtpHost: emailAccountResult.smtpServer || provider.smtpHost,
         smtpPort: provider.smtpPort,
         imapHost: provider.imapHost,
         imapPort: provider.imapPort,
@@ -187,58 +152,66 @@ class EmailService {
           {
             type: 'MX',
             host: account.domain,
-            value: 'mx1.maildomainpro.com'
-          },
-          {
-            type: 'MX',
-            host: account.domain,
-            value: 'mx2.maildomainpro.com'
+            value: 'mx.sendgrid.net'
           },
           {
             type: 'TXT',
             host: account.domain,
-            value: 'v=spf1 include:_spf.maildomainpro.com ~all'
+            value: 'v=spf1 include:sendgrid.net ~all'
           }
         ]
       };
     } catch (error) {
-      console.error('Error creating email account:', error);
+      console.error('Error creating email account with SendGrid:', error);
       if (error instanceof Error) {
         throw error;
       }
-      throw new Error('Failed to create email account. Please try again later.');
+      throw new Error('Failed to create email account with SendGrid. Please try again later.');
     }
   }
   
   /**
    * Check if an email address is available
-   * In a real implementation, this would check with the email provider API
+   * This performs basic validation and assumes the email is available
+   * (SendGrid doesn't have an API to check availability)
    */
   async checkEmailAvailability(emailAddress: string, domain: string): Promise<boolean> {
     try {
       // Check if API is available
-      const apiAvailable = await this.checkApiAvailability();
-      if (!apiAvailable) {
-        throw new Error('Email provider API is currently unavailable. Please try again later.');
+      const apiConnected = await sendgridService.checkApiConnection();
+      if (!apiConnected) {
+        throw new Error('Unable to connect to the email service. Please check your API key.');
       }
       
-      // Simulate API latency
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // In a real implementation, we would check with the email provider API
-      // For this exercise, we'll simulate some basic validation
-      
-      // Check if the email address contains invalid characters
+      // This is a basic validation since SendGrid doesn't offer an API to check availability
       const validEmailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!validEmailPattern.test(`${emailAddress}@${domain}`)) {
         return false;
       }
       
-      // Assume the email address is available
+      // For SendGrid, any valid email format is considered available
       return true;
     } catch (error) {
       console.error('Error checking email availability:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
       throw new Error('Failed to check email availability. Please try again later.');
+    }
+  }
+  
+  /**
+   * Send a test email using the newly created account
+   */
+  async sendTestEmail(from: string, to: string, subject: string = 'Test Email'): Promise<boolean> {
+    const text = 'This is a test email sent from your new email account.';
+    const html = '<p>This is a test email sent from your new email account.</p>';
+    
+    try {
+      return await sendgridService.sendEmail(from, to, subject, text, html);
+    } catch (error) {
+      console.error('Error sending test email:', error);
+      return false;
     }
   }
 }
