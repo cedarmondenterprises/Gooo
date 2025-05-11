@@ -21,7 +21,7 @@ const Cta = () => {
                 Explore Features
               </Button>
             </a>
-            <a href="#domain-setup">
+            <a href="/email-setup">
               <Button 
                 variant="outline" 
                 size="lg" 
