@@ -14,9 +14,9 @@ const DomainSetup = () => {
     <section id="domain-setup" className="py-16 bg-gradient-to-b from-white to-secondary-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-secondary-900 mb-4">Create Your Professional Email in 3 Steps</h2>
+          <h2 className="text-3xl font-bold text-secondary-900 mb-4">Create Your Free Professional Email in 3 Steps</h2>
           <p className="text-xl text-secondary-600 max-w-3xl mx-auto">
-            Get your business email address with your custom domain quickly and easily.
+            Get your business email address with your custom domain quickly and easily, completely free.
           </p>
         </div>
         
@@ -122,9 +122,9 @@ const DomainSetup = () => {
         </div>
         
         <div className="mt-12 text-center">
-          <a href="#pricing">
+          <a href="#features">
             <Button size="lg" className="px-8">
-              Get Started Now
+              Get Started Free
             </Button>
           </a>
         </div>
