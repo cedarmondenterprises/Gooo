@@ -1,8 +1,5 @@
-// This file implements a service for managing email accounts and domains
-// In a real-world implementation, this would connect to actual email provider APIs
-// like Google Workspace API, Microsoft 365 API, Zoho Mail API, etc.
-
-import axios from 'axios';
+// Email service for validating domains and creating email accounts
+import crypto from 'crypto';
 
 interface DomainValidationResult {
   isAvailable: boolean;
@@ -34,130 +31,93 @@ interface EmailAccountCreationResult {
 }
 
 class EmailService {
-  // Providers configuration - this would contain real API credentials in a production app
+  // Simulated email provider configurations
   private providerConfigs: {
     [key: string]: {
+      displayName: string;
       smtpHost: string;
       smtpPort: number;
       imapHost: string;
       imapPort: number;
       webmailUrl: string;
-    }
+    };
   } = {
-    google: {
-      smtpHost: 'smtp.gmail.com',
-      smtpPort: 587,
-      imapHost: 'imap.gmail.com',
-      imapPort: 993,
-      webmailUrl: 'https://mail.google.com',
-    },
-    microsoft: {
-      smtpHost: 'smtp.office365.com',
-      smtpPort: 587,
-      imapHost: 'outlook.office365.com',
-      imapPort: 993,
-      webmailUrl: 'https://outlook.office.com',
-    },
-    zoho: {
-      smtpHost: 'smtp.zoho.com',
-      smtpPort: 587,
-      imapHost: 'imap.zoho.com',
-      imapPort: 993,
-      webmailUrl: 'https://mail.zoho.com',
-    },
-    maildomainpro: {
+    standard: {
+      displayName: 'Standard Email',
       smtpHost: 'smtp.maildomainpro.com',
       smtpPort: 587,
       imapHost: 'imap.maildomainpro.com',
       imapPort: 993,
-      webmailUrl: 'https://mail.maildomainpro.com',
+      webmailUrl: 'https://mail.maildomainpro.com'
+    },
+    business: {
+      displayName: 'Business Email',
+      smtpHost: 'smtp.business.maildomainpro.com',
+      smtpPort: 587,
+      imapHost: 'imap.business.maildomainpro.com',
+      imapPort: 993,
+      webmailUrl: 'https://business.maildomainpro.com'
+    },
+    enterprise: {
+      displayName: 'Enterprise Email',
+      smtpHost: 'smtp.enterprise.maildomainpro.com',
+      smtpPort: 587,
+      imapHost: 'imap.enterprise.maildomainpro.com',
+      imapPort: 993,
+      webmailUrl: 'https://enterprise.maildomainpro.com'
     }
   };
 
-  // Domain validation function
+  /**
+   * Validate a domain for email setup
+   */
   async validateDomain(domainName: string): Promise<DomainValidationResult> {
-    try {
-      // In a real implementation, we would:
-      // 1. Check if the domain is registered and available
-      // 2. Check MX records for the domain
-      // 3. Verify DNS settings
-
-      // Simulate API call with a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // For demo purposes, we'll just return success
-      return {
-        isAvailable: true,
-        mxRecordsValid: true,
-        dnsVerified: true
-      };
-
-      // In a real implementation, we might use a domain API:
-      // const response = await axios.get(
-      //   `https://domain-api.example.com/check?domain=${domainName}`
-      // );
-      // return response.data;
-    } catch (error) {
-      console.error('Error validating domain:', error);
-      throw new Error('Failed to validate domain. Please try again later.');
-    }
+    // In a real implementation, this would check domain DNS records
+    // For demo purposes, we'll simulate a successful validation
+    
+    return {
+      isAvailable: true,
+      mxRecordsValid: true,
+      dnsVerified: true
+    };
   }
 
-  // Email account creation function
+  /**
+   * Create an email account for a domain
+   */
   async createEmailAccount(account: EmailAccountInfo): Promise<EmailAccountCreationResult> {
     try {
-      // In a real implementation, we would:
-      // 1. Call the appropriate email provider API
-      // 2. Set up DNS records
-      // 3. Create mailboxes
-      // 4. Assign licenses or quotas
-
-      // Get the provider configuration
-      const providerConfig = this.providerConfigs[account.provider] || 
-                             this.providerConfigs.maildomainpro;
-
-      // Simulate API call with a delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Generate DNS records that would be needed for the domain
-      const dnsRecords = [
-        {
-          type: 'MX',
-          host: account.domain,
-          value: `10 mx1.${account.provider === 'maildomainpro' ? 'maildomainpro.com' : `${account.provider}.com`}`
-        },
-        {
-          type: 'MX',
-          host: account.domain,
-          value: `20 mx2.${account.provider === 'maildomainpro' ? 'maildomainpro.com' : `${account.provider}.com`}`
-        },
-        {
-          type: 'TXT',
-          host: account.domain,
-          value: `v=spf1 include:_spf.${account.provider === 'maildomainpro' ? 'maildomainpro.com' : `${account.provider}.com`} ~all`
-        },
-        {
-          type: 'CNAME',
-          host: `mail.${account.domain}`,
-          value: `mail.${account.provider === 'maildomainpro' ? 'maildomainpro.com' : `${account.provider}.com`}`
-        }
-      ];
-
-      // In a real implementation, we might use a provider's API:
-      // const response = await axios.post(
-      //   `https://${account.provider}-api.example.com/accounts`,
-      //   { ...account }
-      // );
+      // Get provider configuration
+      const provider = this.providerConfigs[account.provider] || this.providerConfigs.standard;
+      
+      // In a real implementation, this would create the actual email account
+      // For now, we'll return successful creation data
       
       return {
         success: true,
         mailboxSetup: true,
-        webmailUrl: providerConfig.webmailUrl,
-        smtpHost: providerConfig.smtpHost,
-        smtpPort: providerConfig.smtpPort,
-        imapHost: providerConfig.imapHost,
-        imapPort: providerConfig.imapPort,
-        dnsRecords
+        webmailUrl: provider.webmailUrl,
+        smtpHost: provider.smtpHost,
+        smtpPort: provider.smtpPort,
+        imapHost: provider.imapHost,
+        imapPort: provider.imapPort,
+        dnsRecords: [
+          {
+            type: 'MX',
+            host: account.domain,
+            value: 'mx1.maildomainpro.com'
+          },
+          {
+            type: 'MX',
+            host: account.domain,
+            value: 'mx2.maildomainpro.com'
+          },
+          {
+            type: 'TXT',
+            host: account.domain,
+            value: 'v=spf1 include:_spf.maildomainpro.com ~all'
+          }
+        ]
       };
     } catch (error) {
       console.error('Error creating email account:', error);
